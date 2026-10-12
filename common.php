@@ -2238,6 +2238,18 @@ function getStackHtml(&$html, $name, $remove) {
         }
     }
 }
+// Directory-level decorations must not depend on the selected listing page.
+function folder_functionality_files($path, $files) {
+    if ($files['type'] !== 'folder' || !isset($files['childcount']) || $files['childcount'] <= 200) return $files;
+    foreach (['head.md', 'readme.md', 'head.omf', 'foot.omf'] as $name) {
+        if (isset($files['list'][$name])) continue;
+        $file = get_content(path_format($path . '/' . $name));
+        if (isset($file['type'], $file['content']['stat']) && $file['type'] === 'file' && $file['content']['stat'] == 200) {
+            $files['list'][$name] = $file;
+        }
+    }
+    return $files;
+}
 function headandfoot(&$html, $target, $path, $files, $name, $globalUrl) {
     while (strpos($html, '/*--' . $target . 'Start--*/')) {
         $tmp = splitfirst($html, '/*--' . $target . 'Start--*/');
@@ -2245,9 +2257,9 @@ function headandfoot(&$html, $target, $path, $files, $name, $globalUrl) {
         $tmp = splitfirst($tmp[1], '/*--' . $target . 'End--*/');
         $content1 = "";
         if (isset($files['list'][$name])) {
-            $content = get_content(path_format($path . '/' . $files['list'][$name]['name']))['content']['body'];
+            $content = isset($files['list'][$name]['content']['body']) ? $files['list'][$name]['content']['body'] : get_content(path_format($path . '/' . $files['list'][$name]['name']))['content']['body'];
             $content1 = str_replace('/*--' . $target . 'Content--*/', $content, $tmp[0]);
-            $content1 = str_replace('<!--' . $target . 'Content-->', $content, $tmp[0]);
+            $content1 = str_replace('<!--' . $target . 'Content-->', $content, $content1);
         } elseif (getConfig($globalUrl)) {
             if (!$content = getcache($target . 'Content')) {
                 $res = curl('GET', getConfig($globalUrl), '', [], 0, 1);
@@ -2257,7 +2269,7 @@ function headandfoot(&$html, $target, $path, $files, $name, $globalUrl) {
                 } else $content = $res['stat'];
             }
             $content1 = str_replace('/*--' . $target . 'Content--*/', $content, $tmp[0]);
-            $content1 = str_replace('<!--' . $target . 'Content-->', $content, $tmp[0]);
+            $content1 = str_replace('<!--' . $target . 'Content-->', $content, $content1);
         }
         $html .= $content1 . $tmp[1];
     }
@@ -2268,9 +2280,9 @@ function headandfoot(&$html, $target, $path, $files, $name, $globalUrl) {
         $tmp = splitfirst($tmp[1], '<!--' . $target . 'End-->');
         $content1 = "";
         if (isset($files['list'][$name])) {
-            $content = get_content(path_format($path . '/' . $files['list'][$name]['name']))['content']['body'];
+            $content = isset($files['list'][$name]['content']['body']) ? $files['list'][$name]['content']['body'] : get_content(path_format($path . '/' . $files['list'][$name]['name']))['content']['body'];
             $content1 = str_replace('/*--' . $target . 'Content--*/', $content, $tmp[0]);
-            $content1 = str_replace('<!--' . $target . 'Content-->', $content, $tmp[0]);
+            $content1 = str_replace('<!--' . $target . 'Content-->', $content, $content1);
         } elseif (getConfig($globalUrl)) {
             if (!$content = getcache($target . 'Content')) {
                 $res = curl('GET', getConfig($globalUrl), '', [], 0, 1);
@@ -2280,7 +2292,7 @@ function headandfoot(&$html, $target, $path, $files, $name, $globalUrl) {
                 } else $content = $res['stat'];
             }
             $content1 = str_replace('/*--' . $target . 'Content--*/', $content, $tmp[0]);
-            $content1 = str_replace('<!--' . $target . 'Content-->', $content, $tmp[0]);
+            $content1 = str_replace('<!--' . $target . 'Content-->', $content, $content1);
         }
         $html .= $content1 . $tmp[1];
     }
@@ -2853,6 +2865,8 @@ function render_list($path = '', $files = []) {
         if ($diskname == '') $diskname = $_SERVER['disktag'];
         //if (strlen($diskname)>15) $diskname = substr($diskname, 0, 12).'...';
         while (strpos($html, '<!--DiskNameNow-->')) $html = str_replace('<!--DiskNameNow-->', $diskname, $html);
+
+        $files = folder_functionality_files($path, $files);
 
         $tmp = splitfirst($html, '<!--MdRequireStart-->');
         $html = $tmp[0];
