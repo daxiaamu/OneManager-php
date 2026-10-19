@@ -1,0 +1,15 @@
+--- a/app@493df0b3.930b7384370c541dd4ba.js
++++ b/app@493df0b3.930b7384370c541dd4ba.js
+@@ -5008,9 +5008,9 @@
+ 
+ 								.diskList.forEach((function(e) {
+ 
+-									e.DOM.parentNode.classList.remove("mdui-list-item-active")
+-
+-								})), t.this.DOM.parentNode.classList.add("mdui-list-item-active");
++									e && e.DOM && e.DOM.parentNode && e.DOM.parentNode.classList.remove("mdui-list-item-active")
++
++								})), t.this && t.this.DOM && t.this.DOM.parentNode && t.this.DOM.parentNode.classList.add("mdui-list-item-active");
+ 
+ 							case 4:
+ 
