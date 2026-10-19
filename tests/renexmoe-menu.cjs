@@ -1,0 +1,12 @@
+const fs = require('fs');
+const assert = require('assert');
+const source = fs.readFileSync('js/renexmoe-daxiaamu-fixed.js', 'utf8');
+const remove = source.match(/e && e\.DOM && e\.DOM\.parentNode && e\.DOM\.parentNode\.classList\.remove\("mdui-list-item-active"\)/)[0];
+const add = source.match(/t\.this && t\.this\.DOM && t\.this\.DOM\.parentNode && t\.this\.DOM\.parentNode\.classList\.add\("mdui-list-item-active"\)/)[0];
+const update = new Function('e', 't', remove + ';' + add);
+for (const item of [null, {}, {DOM:null}, {DOM:{parentNode:null}}]) update(item, {this:item});
+let removed = 0, added = 0;
+const item = {DOM:{parentNode:{classList:{remove(){removed++},add(){added++}}}}};
+update(item,{this:item});
+assert.equal(removed,1); assert.equal(added,1);
+console.log('Missing-node and normal-menu checks passed.');

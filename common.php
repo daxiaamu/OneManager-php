@@ -548,7 +548,9 @@ function get_content($path) {
     global $drive;
     $path1 = path_format($_SERVER['list_path'] . path_format($path));
     if ($path1 != '/' && substr($path1, -1) == '/') $path1 = substr($path1, 0, -1);
+    $started = microtime(true);
     $file = $drive->list_files($path1);
+    record_server_timing('drive', microtime(true) - $started);
     //var_dump($file);
     return $file;
 }
@@ -871,6 +873,7 @@ function no_return_curl($method, $url, $data = '') {
     return $response;
 }
 function curl($method, $url, $data = '', $headers = [], $returnheader = 0, $location = 0) {
+    $started = microtime(true);
     //if (!isset($headers['Accept'])) $headers['Accept'] = '*/*';
     //if (!isset($headers['Referer'])) $headers['Referer'] = $url;
     //if (!isset($headers['Content-Type'])) $headers['Content-Type'] = 'application/x-www-form-urlencoded';
@@ -909,6 +912,7 @@ function curl($method, $url, $data = '', $headers = [], $returnheader = 0, $loca
     }
     $response['stat'] = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
+    record_server_timing('http', microtime(true) - $started);
     return $response;
 }
 
@@ -1089,12 +1093,26 @@ function needUpdate() {
     return 0;
 }
 
+// Aggregate numeric timings only: no paths, tokens or upstream URLs in headers.
+function record_server_timing($name, $seconds) {
+    if (!isset($_SERVER['om_timing'][$name])) $_SERVER['om_timing'][$name] = ['duration' => 0, 'count' => 0];
+    $_SERVER['om_timing'][$name]['duration'] += $seconds * 1000;
+    $_SERVER['om_timing'][$name]['count']++;
+}
+
 function output($body, $statusCode = 200, $headers = [], $isBase64Encoded = false) {
     if (isset($_SERVER['Set-Cookie'])) $headers['Set-Cookie'] = $_SERVER['Set-Cookie'];
     if (baseclassofdrive() == 'Aliyundrive' || baseclassofdrive() == 'BaiduDisk') $headers['Referrer-Policy'] = 'no-referrer';
     //$headers['Referrer-Policy'] = 'same-origin';
     //$headers['X-Frame-Options'] = 'sameorigin';
     if (!isset($headers['Content-Type'])) $headers['Content-Type'] = 'text/html';
+    if (!empty($_SERVER['om_timing'])) {
+        $timings = [];
+        foreach ($_SERVER['om_timing'] as $name => $timing) {
+            $timings[] = $name . ';dur=' . number_format($timing['duration'], 2, '.', '') . ';desc="' . $timing['count'] . ' calls"';
+        }
+        $headers['Server-Timing'] = implode(', ', $timings);
+    }
     return [
         'isBase64Encoded' => $isBase64Encoded,
         'statusCode' => $statusCode,
@@ -2243,7 +2261,14 @@ function folder_functionality_files($path, $files) {
     if ($files['type'] !== 'folder' || !isset($files['childcount']) || $files['childcount'] <= 200) return $files;
     foreach (['head.md', 'readme.md', 'head.omf', 'foot.omf'] as $name) {
         if (isset($files['list'][$name])) continue;
+        // Cache only confirmed absence briefly; never cache auth or upstream failures.
+        $missingKey = 'missing_decoration_' . path_format($_SERVER['list_path'] . '/' . $path . '/' . $name);
+        $disktag = isset($_SERVER['disktag']) ? $_SERVER['disktag'] : '';
+        if (getcache($missingKey, $disktag)) continue;
         $file = get_content(path_format($path . '/' . $name));
+        if (isset($file['error']['stat']) && $file['error']['stat'] == 404) {
+            savecache($missingKey, true, $disktag, 60);
+        }
         if (isset($file['type'], $file['content']['stat']) && $file['type'] === 'file' && $file['content']['stat'] == 200) {
             $files['list'][$name] = $file;
         }

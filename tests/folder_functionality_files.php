@@ -1,7 +1,7 @@
 <?php
 // Run with: php tests/folder_functionality_files.php
 // Load production functions without bootstrapping a platform or a live drive.
-$wanted = ['folder_functionality_files', 'headandfoot', 'get_content', 'path_format', 'splitfirst'];
+$wanted = ['output', 'record_server_timing', 'folder_functionality_files', 'headandfoot', 'get_content', 'path_format', 'splitfirst'];
 $tokens = token_get_all(file_get_contents(__DIR__ . '/../common.php'));
 for ($i = 0; $i < count($tokens); $i++) {
     if (!is_array($tokens[$i]) || $tokens[$i][0] !== T_FUNCTION) continue;
@@ -20,6 +20,7 @@ for ($i = 0; $i < count($tokens); $i++) {
     $i--;
     eval($source);
 }
+function baseclassofdrive() { return 'Onedrive'; }
 function getConfig($key) { return $GLOBALS['config'][$key] ?? ''; }
 function getcache($key) { return $GLOBALS['cache'][$key] ?? false; }
 function savecache($key, $value) { $GLOBALS['cache'][$key] = $value; }
@@ -50,6 +51,11 @@ foreach (['<!--ReadmemdStart--><div><!--ReadmemdContent--></div><!--ReadmemdEnd-
 }
 check(count($drive->calls) === 4, 'Rendering must reuse the fetched content');
 $drive->calls = [];
+folder_functionality_files('/phone', $folder);
+check($drive->calls === ['/Public/phone/readme.md'], 'Confirmed missing files must not be probed again');
+$cache = [];
+
+$drive->calls = [];
 folder_functionality_files('/phone', ['type' => 'folder', 'childcount' => 200, 'list' => []]);
 folder_functionality_files('/phone', ['type' => 'file']);
 check(!$drive->calls, 'Unpaginated folders and file previews must not add requests');
@@ -71,3 +77,11 @@ $html = 'prefix<!--ReadmemdStart--><div><!--ReadmemdContent--></div><!--Readmemd
 headandfoot($html, 'Readmemd', '/phone', $resolved, 'readme.md', 'globalReadmeMdUrl');
 check($html === 'prefix<div># Local README</div>suffix', 'Local README must override global fallback');
 echo "All folder decoration regression checks passed.\n";
+
+$_SERVER['om_timing'] = [];
+record_server_timing('http', 0.025);
+record_server_timing('http', 0.075);
+$response = output('ok');
+check($response['headers']['Server-Timing'] === 'http;dur=100.00;desc="2 calls"', 'Timing header must aggregate milliseconds and counts');
+check($response['body'] === 'ok' && $response['statusCode'] === 200, 'Timing must preserve the response');
+echo "Server timing checks passed.\n";
