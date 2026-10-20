@@ -887,7 +887,7 @@ function copyToClip(content,message) {
 
     #mdui-qr-dialog-template {
         --qr-bg: #fff; --qr-text: #20242b; --qr-muted: #626973;
-        --qr-border: #e7e9ed; --qr-accent: #c2185b; --qr-hover: #981247;
+        --qr-border: #e7e9ed;
         width: 380px; max-width: calc(100vw - 32px); border-radius: 20px;
         background: var(--qr-bg); color: var(--qr-text); overflow-x: hidden; overflow-y: auto;
         height: auto !important; max-height: calc(100vh - 32px);
@@ -895,8 +895,7 @@ function copyToClip(content,message) {
         box-shadow: 0 20px 64px rgba(0,0,0,.2);
     }
     #mdui-qr-dialog-template .qr-header { padding: 28px 28px 0; position: relative; }
-    #mdui-qr-dialog-template .qr-title { margin: 0; padding-right: 32px; font-size: 22px; font-weight: 650; line-height: 1.4; }
-    #mdui-qr-dialog-template .qr-subtitle { margin: 8px 0 0; color: var(--qr-muted); font-size: 14px; line-height: 1.6; }
+    #mdui-qr-dialog-template .qr-subtitle { margin: 0; padding-right: 32px; color: var(--qr-muted); font-size: 14px; line-height: 1.6; }
     #mdui-qr-dialog-template .qr-close { position: absolute; right: 16px; top: 16px; width: 40px; height: 40px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--qr-muted); font-size: 28px; cursor: pointer; }
     #mdui-qr-dialog-template .qr-close:hover { background: var(--qr-border); color: var(--qr-text); }
     #mdui-qr-dialog-template .mdui-dialog-content { padding: 24px 28px; color: inherit; height: auto !important; }
@@ -916,9 +915,9 @@ function copyToClip(content,message) {
         text-align: center;
     }
     #mdui-qr-dialog-template .qr-actions { padding: 0 28px 28px; }
-    #mdui-qr-dialog-template .qr-open { display: flex; justify-content: center; align-items: center; min-height: 44px; border-radius: 10px; background: var(--qr-accent); color: #fff; font-size: 14px; font-weight: 600; text-decoration: none; }
-    #mdui-qr-dialog-template .qr-open:hover { background: var(--qr-hover); }
-    #mdui-qr-dialog-template :focus-visible { outline: 3px solid var(--qr-accent); outline-offset: 3px; }
+    #mdui-qr-dialog-template .qr-open { display: flex; justify-content: center; align-items: center; min-height: 44px; border-radius: 10px; font-size: 14px; font-weight: 600; text-decoration: none; }
+    #mdui-qr-dialog-template .qr-open:hover { box-shadow: inset 0 0 0 100px rgba(0,0,0,.1); }
+    #mdui-qr-dialog-template :focus-visible { outline: 3px solid var(--qr-text); outline-offset: 3px; }
     button.injected-qr-icon-footer { padding: 4px; border: 0; background: transparent; cursor: pointer; border-radius: 4px; }
     button.injected-qr-icon-footer:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
     .mdui-theme-layout-dark #mdui-qr-dialog-template { --qr-bg: #25272c; --qr-text: #f4f5f7; --qr-muted: #bdc1ca; --qr-border: #454a54; }
@@ -929,9 +928,8 @@ function copyToClip(content,message) {
     }
 </style>
 
-<div class="mdui-dialog" id="mdui-qr-dialog-template" role="dialog" aria-modal="true" aria-labelledby="qr-dialog-title" aria-describedby="qr-dialog-description">
+<div class="mdui-dialog" id="mdui-qr-dialog-template" role="dialog" aria-modal="true" aria-label="夸克网盘下载二维码" aria-describedby="qr-dialog-description">
     <div class="qr-header">
-        <h2 class="qr-title" id="qr-dialog-title">扫码下载到手机</h2>
         <p class="qr-subtitle">使用夸克 App 扫描二维码</p>
         <button type="button" class="qr-close" aria-label="关闭扫码弹窗" mdui-dialog-close>&times;</button>
     </div>
@@ -943,7 +941,7 @@ function copyToClip(content,message) {
         </div>
     </div>
     <div class="qr-actions">
-        <a class="qr-open" id="qr-dialog-open-link" target="_blank" rel="noopener noreferrer">直接打开网盘链接 ↗</a>
+        <a class="qr-open mdui-color-theme-accent mdui-ripple" id="qr-dialog-open-link" target="_blank" rel="noopener noreferrer">直接打开网盘链接 ↗</a>
     </div>
 </div>
 
