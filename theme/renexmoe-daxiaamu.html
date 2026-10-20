@@ -885,33 +885,65 @@ function copyToClip(content,message) {
         -webkit-font-smoothing: antialiased;
     }
 
-    /* 优化二维码容器在弹窗中的居中 */
+    #mdui-qr-dialog-template {
+        --qr-bg: #fff; --qr-text: #20242b; --qr-muted: #626973;
+        --qr-border: #e7e9ed; --qr-accent: #c2185b; --qr-hover: #981247;
+        width: 380px; max-width: calc(100vw - 32px); border-radius: 20px;
+        background: var(--qr-bg); color: var(--qr-text); overflow-x: hidden; overflow-y: auto;
+        height: auto !important; max-height: calc(100vh - 32px);
+        font-family: system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+        box-shadow: 0 20px 64px rgba(0,0,0,.2);
+    }
+    #mdui-qr-dialog-template .qr-header { padding: 28px 28px 0; position: relative; }
+    #mdui-qr-dialog-template .qr-title { margin: 0; padding-right: 32px; font-size: 22px; font-weight: 650; line-height: 1.4; }
+    #mdui-qr-dialog-template .qr-subtitle { margin: 8px 0 0; color: var(--qr-muted); font-size: 14px; line-height: 1.6; }
+    #mdui-qr-dialog-template .qr-close { position: absolute; right: 16px; top: 16px; width: 40px; height: 40px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--qr-muted); font-size: 28px; cursor: pointer; }
+    #mdui-qr-dialog-template .qr-close:hover { background: var(--qr-border); color: var(--qr-text); }
+    #mdui-qr-dialog-template .mdui-dialog-content { padding: 24px 28px; color: inherit; height: auto !important; }
     #qrcode-canvas-injected-mdui {
         display: flex;
         justify-content: center;
         align-items: center;
-        padding: 10px 0;
+        box-sizing: content-box; width: 192px; height: 192px; padding: 16px;
+        margin: 0 auto; background: #fff; border: 1px solid var(--qr-border); border-radius: 12px;
     }
     
     /* 2. 二维码下方的文字样式 */
-    .qr-description {
-        margin-top: 15px;
-        color: #757575; /* 灰色提示文字 */
-        font-size: 14px;
+    #mdui-qr-dialog-template .qr-description {
+        margin: 16px 0 0;
+        color: var(--qr-muted);
+        font-size: 13px; line-height: 1.7;
         text-align: center;
+    }
+    #mdui-qr-dialog-template .qr-actions { padding: 0 28px 28px; }
+    #mdui-qr-dialog-template .qr-open { display: flex; justify-content: center; align-items: center; min-height: 44px; border-radius: 10px; background: var(--qr-accent); color: #fff; font-size: 14px; font-weight: 600; text-decoration: none; }
+    #mdui-qr-dialog-template .qr-open:hover { background: var(--qr-hover); }
+    #mdui-qr-dialog-template :focus-visible { outline: 3px solid var(--qr-accent); outline-offset: 3px; }
+    button.injected-qr-icon-footer { padding: 4px; border: 0; background: transparent; cursor: pointer; border-radius: 4px; }
+    button.injected-qr-icon-footer:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+    .mdui-theme-layout-dark #mdui-qr-dialog-template { --qr-bg: #25272c; --qr-text: #f4f5f7; --qr-muted: #bdc1ca; --qr-border: #454a54; }
+    @media (max-height: 540px) {
+        #mdui-qr-dialog-template .qr-header { padding-top: 16px; }
+        #mdui-qr-dialog-template .mdui-dialog-content { padding-top: 12px; padding-bottom: 12px; }
+        #mdui-qr-dialog-template .qr-actions { padding-bottom: 16px; }
     }
 </style>
 
-<div class="mdui-dialog" id="mdui-qr-dialog-template">
+<div class="mdui-dialog" id="mdui-qr-dialog-template" role="dialog" aria-modal="true" aria-labelledby="qr-dialog-title" aria-describedby="qr-dialog-description">
+    <div class="qr-header">
+        <h2 class="qr-title" id="qr-dialog-title">扫码下载到手机</h2>
+        <p class="qr-subtitle">使用夸克 App 扫描二维码</p>
+        <button type="button" class="qr-close" aria-label="关闭扫码弹窗" mdui-dialog-close>&times;</button>
+    </div>
     <div class="mdui-dialog-content">
-        <div id="qrcode-canvas-injected-mdui"></div>
+        <div id="qrcode-canvas-injected-mdui" role="img" aria-label="夸克网盘下载链接二维码"></div>
         
-        <div class="qr-description">
-            手机扫码即可下载、一键转存本页全部文件
+        <div class="qr-description" id="qr-dialog-description">
+            在手机上下载文件，或转存到自己的网盘
         </div>
     </div>
-    <div class="mdui-dialog-actions">
-        <button class="mdui-btn mdui-ripple mdui-text-color-primary" mdui-dialog-close>关闭</button>
+    <div class="qr-actions">
+        <a class="qr-open" id="qr-dialog-open-link" target="_blank" rel="noopener noreferrer">直接打开网盘链接 ↗</a>
     </div>
 </div>
 
@@ -946,7 +978,9 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             // 创建二维码图标元素
-            const qrIcon = document.createElement('i');
+            const qrIcon = document.createElement('button');
+            qrIcon.type = 'button';
+            qrIcon.setAttribute('aria-label', '显示夸克网盘下载二维码');
             qrIcon.className = 'material-icons injected-qr-icon-footer';
             qrIcon.textContent = 'qr_code'; 
             qrIcon.title = '手机扫码下载文件';
@@ -959,7 +993,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 event.stopPropagation(); 
                 
                 // 每次点击前，清空旧二维码（防止重复渲染）
-                canvasContainer.innerHTML = ''; 
+                canvasContainer.innerHTML = '';
+                document.getElementById('qr-dialog-open-link').href = url;
 
                 if (typeof QRCode === 'undefined') {
                     console.error('QRCode 库未加载。');
@@ -969,8 +1004,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 // 生成二维码
                 new QRCode(canvasContainer, {
                     text: url,
-                    width: 150,
-                    height: 150,
+                    width: 192,
+                    height: 192,
                     colorDark: "#000000",
                     colorLight: "#ffffff",
                     correctLevel: QRCode.CorrectLevel.H
