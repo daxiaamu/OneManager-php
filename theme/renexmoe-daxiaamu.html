@@ -965,6 +965,13 @@ document.addEventListener('DOMContentLoaded', function() {
         history: false // 禁用历史记录，避免影响浏览器后退
     });
 
+    function isMobileDevice() {
+        const ua = navigator.userAgent || '';
+        return Boolean(navigator.userAgentData && navigator.userAgentData.mobile) ||
+            /Android|iPhone|iPad|iPod|Windows Phone|Mobile/i.test(ua) ||
+            (/Macintosh/i.test(ua) && navigator.maxTouchPoints > 1);
+    }
+
     const boundLinks = new WeakSet();
     const adFrame = document.getElementById('qr-dialog-ad');
     const adHtml = "\u003c!doctype html>\u003chtml>\u003chead>\u003cmeta name=\"viewport\" content=\"width=device-width,initial-scale=1\">\u003cbase href=\"https://yun.daxiaamu.com/\">\u003c/head>\u003cbody style=\"margin:0\">\u003cscript>(function(inj){\nvar d = document,\n    s = d.createElement('script'),\n    l = d.scripts[d.scripts.length - 1];\ns.settings = inj || {};\ns.src = \"//untimely-hello.com/bVX.Vcspd/GQlZ0QYKWTcm/uexmX9GuBZsUTlJkaPpTEYl4dNeDqc/2kM_D/kXtFNljDgv0tNFzFYyxlMvwG\";\ns.async = true;\ns.referrerPolicy = 'no-referrer-when-downgrade';\nl.parentNode.insertBefore(s, l);\n})({})\u003c/script>\u003c/body>\u003c/html>";
@@ -979,6 +986,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const url = link.href;
             if (!url || boundLinks.has(link)) return;
             boundLinks.add(link);
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
 
             // 检查是否已经添加了图标
             if (link.nextElementSibling && link.nextElementSibling.classList.contains('injected-qr-icon-footer')) {
@@ -997,8 +1006,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // 绑定点击事件
             function openDownloadDialog(event) {
-                event.preventDefault(); 
                 event.stopImmediatePropagation();
+                if (isMobileDevice()) {
+                    // Keep native new-tab navigation for the link; the icon is a button.
+                    if (event.currentTarget !== link) {
+                        event.preventDefault();
+                        window.open(link.href, '_blank', 'noopener,noreferrer');
+                    }
+                    return;
+                }
+                event.preventDefault();
                 
                 // 每次点击前，清空旧二维码（防止重复渲染）
                 canvasContainer.innerHTML = '';
