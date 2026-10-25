@@ -861,7 +861,6 @@ function copyToClip(content,message) {
 
 <!--针对[官方链接]()特殊设计↑-->
 
-
 <!--针对【从夸克网盘下载】()特殊设计↓-->
 <style>
     /* 1. 二维码图标样式 (保持夸克蓝和 Material Icons 样式) */
@@ -930,14 +929,14 @@ function copyToClip(content,message) {
 
 <div class="mdui-dialog" id="mdui-qr-dialog-template" role="dialog" aria-modal="true" aria-label="夸克网盘下载二维码" aria-describedby="qr-dialog-description">
     <div class="qr-header">
-        <p class="qr-subtitle">使用夸克 App 扫描二维码</p>
+        <p class="qr-subtitle">扫描二维码保存文件</p>
         <button type="button" class="qr-close" aria-label="关闭扫码弹窗" mdui-dialog-close>&times;</button>
     </div>
     <div class="mdui-dialog-content">
         <div id="qrcode-canvas-injected-mdui" role="img" aria-label="夸克网盘下载链接二维码"></div>
         
         <div class="qr-description" id="qr-dialog-description">
-            在手机上下载文件，或转存到自己的网盘
+            可使用浏览器、夸克 APP、夸克网盘 APP 扫描
         </div>
     </div>
     <div class="qr-actions">
@@ -964,9 +963,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // 核心函数：查找链接并添加图标
     function findAndAddQRCodeIcon() {
         const targetLinks = Array.from(document.querySelectorAll('a'))
-            .filter(a => a.textContent && a.textContent.includes('从夸克网盘下载'));
+            .filter(a => a.textContent && /从(?:夸克|迅雷)网盘下载/.test(a.textContent));
 
         targetLinks.forEach(link => {
+            const provider = link.textContent.includes('从迅雷网盘下载') ? '迅雷' : '夸克';
             const url = link.href;
             if (!url) return;
 
@@ -978,10 +978,10 @@ document.addEventListener('DOMContentLoaded', function() {
             // 创建二维码图标元素
             const qrIcon = document.createElement('button');
             qrIcon.type = 'button';
-            qrIcon.setAttribute('aria-label', '显示夸克网盘下载二维码');
+            qrIcon.setAttribute('aria-label', '显示' + provider + '网盘下载二维码');
             qrIcon.className = 'material-icons injected-qr-icon-footer';
             qrIcon.textContent = 'qr_code'; 
-            qrIcon.title = '手机扫码下载文件';
+            qrIcon.title = '手机扫码打开' + provider + '网盘';
 
             link.parentNode.insertBefore(qrIcon, link.nextSibling);
 
@@ -993,6 +993,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 // 每次点击前，清空旧二维码（防止重复渲染）
                 canvasContainer.innerHTML = '';
                 document.getElementById('qr-dialog-open-link').href = url;
+                dialogElement.setAttribute('aria-label', provider + '网盘下载二维码');
+                canvasContainer.setAttribute('aria-label', provider + '网盘下载链接二维码');
+                document.getElementById('qr-dialog-description').textContent = provider === '迅雷'
+                    ? '可使用浏览器、迅雷 APP 扫描'
+                    : '可使用浏览器、夸克 APP、夸克网盘 APP 扫描';
 
                 if (typeof QRCode === 'undefined') {
                     console.error('QRCode 库未加载。');
