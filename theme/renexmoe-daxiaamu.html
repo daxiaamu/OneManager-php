@@ -17,6 +17,77 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/fira-code@4.2.2/400.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/noto-sans-sc@12.0.0/noto_sans_sc_regular/css.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@10.7.2/build/styles/github.min.css">
+<!--全站广告加载检测↓-->
+<script>
+(function () {
+    if (window.siteAdvertisingGuard) return;
+    const hosts = ['untimely-hello.com'];
+    const failures = new Set();
+    const records = new WeakMap();
+    let serial = 0, overlay, retry, oldOverflow, oldFocus;
+    function render() {
+        if (!overlay || !document.body) return;
+        const blocked = failures.size > 0;
+        if (blocked && overlay.hidden) {
+            oldOverflow = document.body.style.overflow;
+            oldFocus = document.activeElement;
+            document.body.style.overflow = 'hidden';
+            overlay.hidden = false;
+            retry.focus();
+        } else if (!blocked && !overlay.hidden) {
+            overlay.hidden = true;
+            document.body.style.overflow = oldOverflow;
+            if (oldFocus && oldFocus.isConnected) oldFocus.focus();
+        }
+    }
+    function setFailure(key, failed) {
+        if (failed) failures.add(key); else failures.delete(key);
+        render();
+    }
+    window.siteAdvertisingGuard = {setFailure: setFailure};
+    function isAdvertisingScript(node) {
+        if (!node || node.tagName !== 'SCRIPT' || !node.src) return false;
+        try {
+            const host = new URL(node.src, document.baseURI).hostname;
+            return hosts.some(function(value) { return host === value || host.endsWith('.' + value); });
+        } catch (_) { return false; }
+    }
+    function track(node) {
+        if (!isAdvertisingScript(node)) return null;
+        if (records.has(node)) return records.get(node);
+        const record = {key: 'page-script-' + (++serial), timer: null};
+        records.set(node, record);
+        record.timer = window.setTimeout(function() { setFailure(record.key, true); }, 15000);
+        return record;
+    }
+    function finish(event, failed) {
+        const record = track(event.target);
+        if (!record) return;
+        window.clearTimeout(record.timer);
+        setFailure(record.key, failed);
+    }
+    // Capture requests as the existing ad scripts load; do not create probe ads.
+    document.addEventListener('error', function(event) { finish(event, true); }, true);
+    document.addEventListener('load', function(event) { finish(event, false); }, true);
+    function scan() { document.querySelectorAll('script[src]').forEach(track); }
+    new MutationObserver(scan).observe(document.documentElement, {childList: true, subtree: true, attributes: true, attributeFilter: ['src']});
+    scan();
+    document.addEventListener('DOMContentLoaded', function() {
+        overlay = document.getElementById('qr-required-overlay');
+        retry = document.getElementById('qr-required-retry');
+        if (!overlay || !retry) return;
+        retry.addEventListener('click', function() { window.location.reload(); });
+        document.addEventListener('keydown', function(event) {
+            if (overlay.hidden) return;
+            if (event.key === 'Escape' || event.key === 'Tab') {
+                event.preventDefault(); event.stopImmediatePropagation(); retry.focus();
+            }
+        }, true);
+        render();
+    });
+})();
+</script>
+<!--全站广告加载检测↑-->
   <script src="https://cdn.jsdelivr.net/npm/mdui@1.0.2/dist/js/mdui.min.js"></script>
   <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
@@ -994,38 +1065,18 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // A sandboxed frame reports dimensions; never read cross-origin ad contents.
     let adWidth = 0, adHeight = 0;
-    const requiredOverlay = document.getElementById('qr-required-overlay');
-    const retryButton = document.getElementById('qr-required-retry');
-    let previousOverflow = null, previousFocus = null;
     function adIsVisible() {
         const rect = adFrame.getBoundingClientRect();
         const style = window.getComputedStyle(adFrame);
         return adHeight > 1 && rect.width > 1 && rect.height > 1 && style.display !== 'none' && style.visibility !== 'hidden';
     }
     function releaseAdGate() {
-        if (requiredOverlay.hidden) return;
-        requiredOverlay.hidden = true;
-        document.body.style.overflow = previousOverflow;
-        if (previousFocus && previousFocus.isConnected) previousFocus.focus();
-        previousOverflow = null;
+        window.siteAdvertisingGuard.setFailure('qr-ad', false);
     }
     function showAdFallback() {
-        if (isMobileDevice() || adIsVisible() || !requiredOverlay.hidden) return;
-        previousOverflow = document.body.style.overflow;
-        previousFocus = document.activeElement;
-        document.body.style.overflow = 'hidden';
-        requiredOverlay.hidden = false;
-        retryButton.focus();
+        if (isMobileDevice() || adIsVisible()) return;
+        window.siteAdvertisingGuard.setFailure('qr-ad', true);
     }
-    retryButton.addEventListener('click', function() { window.location.reload(); });
-    document.addEventListener('keydown', function(event) {
-        if (requiredOverlay.hidden) return;
-        if (event.key === 'Escape' || event.key === 'Tab') {
-            event.preventDefault();
-            event.stopImmediatePropagation();
-            retryButton.focus();
-        }
-    }, true);
     function updateAdWidth() {
         if (!adWidth) return;
         dialogElement.style.width = Math.min(Math.max(380, adWidth + 40), Math.max(1, window.innerWidth - 32)) + 'px';
