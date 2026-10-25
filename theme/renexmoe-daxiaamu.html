@@ -916,6 +916,7 @@ function copyToClip(content,message) {
     #mdui-qr-dialog-template .qr-actions { padding: 0 28px 20px; }
     #mdui-qr-dialog-template .qr-ad { padding: 0 20px 20px; }
     #mdui-qr-dialog-template .qr-ad iframe { display: block; width: 100%; height: 1px; min-height: 1px; border: 0; border-radius: 8px; }
+    #mdui-qr-dialog-template .qr-ad [hidden] { display: none !important; }
     #mdui-qr-dialog-template .qr-open { display: flex; justify-content: center; align-items: center; min-height: 44px; border-radius: 10px; font-size: 14px; font-weight: 600; text-decoration: none; }
     #mdui-qr-dialog-template .qr-open:hover { box-shadow: inset 0 0 0 100px rgba(0,0,0,.1); }
     #mdui-qr-dialog-template :focus-visible { outline: 3px solid var(--qr-text); outline-offset: 3px; }
@@ -927,6 +928,12 @@ function copyToClip(content,message) {
         #mdui-qr-dialog-template .mdui-dialog-content { padding-top: 12px; padding-bottom: 12px; }
         #mdui-qr-dialog-template .qr-actions { padding-bottom: 16px; }
     }
+    .qr-required-overlay[hidden] { display: none !important; }
+    .qr-required-overlay { position: fixed; inset: 0; z-index: 2147483000; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(0,0,0,.58); }
+    .qr-required-card { box-sizing: border-box; width: 380px; max-width: 100%; padding: 28px; border-radius: 16px; background: #fff; color: #20242b; box-shadow: 0 20px 64px rgba(0,0,0,.2); text-align: center; }
+    .qr-required-card h2 { margin: 0 0 16px; font-size: 20px; line-height: 1.5; }
+    .qr-required-card p { margin: 0 0 24px; color: #626973; font-size: 14px; line-height: 1.8; }
+    .qr-required-card button { min-height: 44px; width: 100%; border: 0; border-radius: 8px; cursor: pointer; }
 </style>
 
 <div class="mdui-dialog" id="mdui-qr-dialog-template" role="dialog" aria-modal="true" aria-label="夸克网盘下载二维码" aria-describedby="qr-dialog-description">
@@ -946,6 +953,14 @@ function copyToClip(content,message) {
     </div>
     <div class="qr-ad">
         <iframe id="qr-dialog-ad" title="广告" sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox" referrerpolicy="no-referrer-when-downgrade"></iframe>
+    </div>
+</div>
+
+<div id="qr-required-overlay" class="qr-required-overlay" role="alertdialog" aria-modal="true" aria-labelledby="qr-required-title" aria-describedby="qr-required-description" hidden>
+    <div class="qr-required-card">
+        <h2 id="qr-required-title">广告暂时无法展示</h2>
+        <p id="qr-required-description">请检查网络连接，或为本站允许广告后重新检测。<br>广告正常展示后即可继续访问。</p>
+        <button type="button" id="qr-required-retry" class="mdui-color-theme-accent mdui-ripple">重新检测</button>
     </div>
 </div>
 
@@ -974,23 +989,60 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const boundLinks = new WeakSet();
     const adFrame = document.getElementById('qr-dialog-ad');
-    const adHtml = "\u003c!doctype html>\u003chtml>\u003chead>\u003cmeta name=\"viewport\" content=\"width=device-width,initial-scale=1\">\u003cbase href=\"https://yun.daxiaamu.com/\">\u003cstyle>html,body{margin:0;padding:0}body{display:flow-root}\u003c/style>\u003c/head>\u003cbody>\u003cscript>(function () {\n    var pending = false, lastWidth = 0, lastHeight = 0;\n    function measure() {\n        pending = false;\n        var body = document.body;\n        var width = Math.ceil(Math.max(body.scrollWidth, body.getBoundingClientRect().width));\n        var height = Math.ceil(Math.max(body.scrollHeight, body.getBoundingClientRect().height, 1));\n        if (width === lastWidth && height === lastHeight) return;\n        lastWidth = width; lastHeight = height;\n        parent.postMessage({type: 'onemanager-qr-ad-size', width: width, height: height}, '*');\n    }\n    function schedule() {\n        if (!pending) { pending = true; requestAnimationFrame(measure); }\n    }\n    if (typeof ResizeObserver !== 'undefined') new ResizeObserver(schedule).observe(document.body);\n    new MutationObserver(schedule).observe(document.body, {childList: true, subtree: true, attributes: true});\n    document.addEventListener('load', schedule, true);\n    window.addEventListener('resize', schedule);\n    schedule();\n})();\u003c/script>\u003cscript>(function(eh){\nvar d = document,\n    s = d.createElement('script'),\n    l = d.currentScript || d.scripts[d.scripts.length - 1];\ns.settings = eh || {};\ns.src = \"//untimely-hello.com/b.X/VosgdxGWlZ0SYIWrcP/Te/m/9uuzZGUilrksPuTmc/1-NHTBIlxDMrDxkLtINVzAUs1IM/jUENxLMawJ\";\ns.async = true;\ns.referrerPolicy = 'no-referrer-when-downgrade';\nl.parentNode.insertBefore(s, l);\n})({})\u003c/script>\u003c/body>\u003c/html>";
+    const adHtml = "\u003c!doctype html>\u003chtml>\u003chead>\u003cmeta name=\"viewport\" content=\"width=device-width,initial-scale=1\">\u003cbase href=\"https://yun.daxiaamu.com/\">\u003cstyle>html,body{margin:0;padding:0}body{display:flow-root}\u003c/style>\u003c/head>\u003cbody>\u003cscript>(function () {\n    var pending = false, lastWidth = 0, lastHeight = 0;\n    function measure() {\n        pending = false;\n        var body = document.body;\n        var width = Math.ceil(Math.max(body.scrollWidth, body.getBoundingClientRect().width));\n        var height = Math.ceil(Math.max(body.scrollHeight, body.getBoundingClientRect().height, 1));\n        if (width === lastWidth && height === lastHeight) return;\n        lastWidth = width; lastHeight = height;\n        parent.postMessage({type: 'onemanager-qr-ad-size', width: width, height: height}, '*');\n    }\n    function schedule() {\n        if (!pending) { pending = true; requestAnimationFrame(measure); }\n    }\n    if (typeof ResizeObserver !== 'undefined') new ResizeObserver(schedule).observe(document.body);\n    new MutationObserver(schedule).observe(document.body, {childList: true, subtree: true, attributes: true});\n    document.addEventListener('load', schedule, true);\n    window.addEventListener('resize', schedule);\n    schedule();\n})();\u003c/script>\u003cscript>(function(eh){\nvar d = document,\n    s = d.createElement('script'),\n    l = d.currentScript || d.scripts[d.scripts.length - 1];\ns.settings = eh || {};\ns.src = \"//untimely-hello.com/b.X/VosgdxGWlZ0SYIWrcP/Te/m/9uuzZGUilrksPuTmc/1-NHTBIlxDMrDxkLtINVzAUs1IM/jUENxLMawJ\";\ns.onerror = function() { parent.postMessage({type: 'onemanager-qr-ad-unavailable'}, '*'); };\ns.async = true;\ns.referrerPolicy = 'no-referrer-when-downgrade';\nl.parentNode.insertBefore(s, l);\n})({})\u003c/script>\u003c/body>\u003c/html>";
 
 
     // A sandboxed frame reports dimensions; never read cross-origin ad contents.
-    let adWidth = 0;
+    let adWidth = 0, adHeight = 0;
+    const requiredOverlay = document.getElementById('qr-required-overlay');
+    const retryButton = document.getElementById('qr-required-retry');
+    let previousOverflow = null, previousFocus = null;
+    function adIsVisible() {
+        const rect = adFrame.getBoundingClientRect();
+        const style = window.getComputedStyle(adFrame);
+        return adHeight > 1 && rect.width > 1 && rect.height > 1 && style.display !== 'none' && style.visibility !== 'hidden';
+    }
+    function releaseAdGate() {
+        if (requiredOverlay.hidden) return;
+        requiredOverlay.hidden = true;
+        document.body.style.overflow = previousOverflow;
+        if (previousFocus && previousFocus.isConnected) previousFocus.focus();
+        previousOverflow = null;
+    }
+    function showAdFallback() {
+        if (isMobileDevice() || adIsVisible() || !requiredOverlay.hidden) return;
+        previousOverflow = document.body.style.overflow;
+        previousFocus = document.activeElement;
+        document.body.style.overflow = 'hidden';
+        requiredOverlay.hidden = false;
+        retryButton.focus();
+    }
+    retryButton.addEventListener('click', function() { window.location.reload(); });
+    document.addEventListener('keydown', function(event) {
+        if (requiredOverlay.hidden) return;
+        if (event.key === 'Escape' || event.key === 'Tab') {
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            retryButton.focus();
+        }
+    }, true);
     function updateAdWidth() {
         if (!adWidth) return;
         dialogElement.style.width = Math.min(Math.max(380, adWidth + 40), Math.max(1, window.innerWidth - 32)) + 'px';
     }
     window.addEventListener('message', function(event) {
         const size = event.data;
-        if (event.source !== adFrame.contentWindow || !size || size.type !== 'onemanager-qr-ad-size') return;
+        if (event.source !== adFrame.contentWindow || !size) return;
+        if (size.type === 'onemanager-qr-ad-unavailable') { showAdFallback(); return; }
+        if (size.type !== 'onemanager-qr-ad-size') return;
         if (!Number.isFinite(size.width) || !Number.isFinite(size.height) || size.width < 0 || size.height < 0) return;
+        adHeight = size.height;
+
         adWidth = Math.min(size.width, 1920);
         adFrame.style.height = Math.max(1, Math.min(Math.ceil(size.height), 10000)) + 'px';
         updateAdWidth();
         if (typeof mduiDialog.handleUpdate === 'function') mduiDialog.handleUpdate();
+        if (adIsVisible()) releaseAdGate();
     });
     window.addEventListener('resize', updateAdWidth);
 
@@ -1063,6 +1115,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (!adFrame.dataset.loaded) {
                     adFrame.dataset.loaded = 'true';
                     adFrame.srcdoc = adHtml;
+                    window.setTimeout(showAdFallback, 8000);
                 }
                 mduiDialog.open();
             }
