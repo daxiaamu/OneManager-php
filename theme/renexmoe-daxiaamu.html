@@ -1100,10 +1100,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // 核心函数：查找链接并添加图标
     function findAndAddQRCodeIcon() {
         const targetLinks = Array.from(document.querySelectorAll('a'))
-            .filter(a => a.textContent && /从(?:夸克|迅雷)网盘下载/.test(a.textContent));
+            .filter(a => a.textContent && /从(?:夸克网盘|迅雷云盘)下载/.test(a.textContent));
 
         targetLinks.forEach(link => {
-            const provider = link.textContent.includes('从迅雷网盘下载') ? '迅雷' : '夸克';
+            const provider = link.textContent.includes('从迅雷云盘下载') ? '迅雷' : '夸克';
             const url = link.href;
             if (!url || boundLinks.has(link)) return;
             boundLinks.add(link);
